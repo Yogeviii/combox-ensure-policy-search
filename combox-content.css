@@ -1,0 +1,62 @@
+#combox-ensure-policy-search.ensure-search-host {
+  display: inline-flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin: 4px 0 4px 8px !important;
+  max-width: 100% !important;
+  vertical-align: middle !important;
+  font-family: Arial, sans-serif !important;
+}
+
+#combox-ensure-policy-search .ensure-search-button {
+  appearance: none !important;
+  box-sizing: border-box !important;
+  min-height: 28px !important;
+  padding: 5px 10px !important;
+  border: 1px solid #0789bd !important;
+  border-radius: 5px !important;
+  background: #08a8e4 !important;
+  color: #ffffff !important;
+  font: 600 12px/16px Arial, sans-serif !important;
+  letter-spacing: normal !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 16%) !important;
+}
+
+#combox-ensure-policy-search .ensure-search-button:hover:not(:disabled) {
+  background: #078fc2 !important;
+}
+
+#combox-ensure-policy-search .ensure-search-button:focus-visible {
+  outline: 2px solid #004f70 !important;
+  outline-offset: 2px !important;
+}
+
+#combox-ensure-policy-search .ensure-search-button:disabled {
+  cursor: wait !important;
+  opacity: 0.72 !important;
+}
+
+#combox-ensure-policy-search .ensure-search-button[data-state="success"] {
+  border-color: #168447 !important;
+  background: #1d9b55 !important;
+}
+
+#combox-ensure-policy-search .ensure-search-status {
+  flex-basis: 100% !important;
+  max-width: 250px !important;
+  color: #4f5b62 !important;
+  font: 11px/14px Arial, sans-serif !important;
+  overflow-wrap: anywhere !important;
+}
+
+#combox-ensure-policy-search .ensure-search-status[data-state="error"] {
+  color: #b3261e !important;
+}
+
+#combox-ensure-policy-search .ensure-search-status[hidden] {
+  display: none !important;
+}

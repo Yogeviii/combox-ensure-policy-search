@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Commbox to eNsure Policy Search",
+  "version": "1.0.0",
+  "description": "Searches the policy shown in a Commbox conversation in the already-open eNsure CRM tab.",
+  "permissions": [
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://davidshield.commbox.io/*",
+    "https://ds-ensure01.passportcard.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://davidshield.commbox.io/*"
+      ],
+      "js": [
+        "combox-content.js"
+      ],
+      "css": [
+        "combox-content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

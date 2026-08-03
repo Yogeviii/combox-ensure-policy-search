@@ -2,15 +2,22 @@
 
 const ENSURE_TAB_PATTERN = "https://ds-ensure01.passportcard.com/*";
 const ENSURE_DEFAULT_PAGE = "/Web_Erp/code/Tabs/Default.aspx";
+const ENSURE_CASE_PAGE = "https://ds-ensure01.passportcard.com/Web_Erp/Code/Cases/caseEdit.aspx";
 const PROBE_ATTEMPTS = 24;
 const PROBE_DELAY_MS = 250;
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type !== "SEARCH_ENSURE_POLICY") {
+  let operation;
+
+  if (message?.type === "SEARCH_ENSURE_POLICY") {
+    operation = searchEnsure(String(message.policyNumber ?? ""));
+  } else if (message?.type === "OPEN_ENSURE_CASE") {
+    operation = openEnsureCase(String(message.customerId ?? ""));
+  } else {
     return false;
   }
 
-  searchEnsure(String(message.policyNumber ?? ""))
+  operation
     .then(sendResponse)
     .catch((error) => {
       sendResponse({
@@ -97,9 +104,19 @@ async function searchEnsure(rawPolicyNumber) {
         continue;
       }
 
+      const customerId = await findCurrentCustomerId(tab.id, policyNumber);
+
+      if (!customerId) {
+        return {
+          ok: false,
+          error: "The customer opened, but its Customer ID could not be read."
+        };
+      }
+
       return {
         ok: true,
         policyNumber,
+        customerId,
         tabId: tab.id
       };
     } catch (error) {
@@ -108,6 +125,29 @@ async function searchEnsure(rawPolicyNumber) {
   }
 
   return { ok: false, error: lastProblem };
+}
+
+async function openEnsureCase(rawCustomerId) {
+  const customerId = rawCustomerId.trim();
+
+  if (!/^\d{1,20}$/.test(customerId)) {
+    return { ok: false, error: "A valid saved eNsure Customer ID was not found." };
+  }
+
+  const caseUrl = new URL(ENSURE_CASE_PAGE);
+  caseUrl.searchParams.set("fromCases", "true");
+  caseUrl.searchParams.set("ObjectTypeId", "1");
+  caseUrl.searchParams.set("ObjectId", customerId);
+
+  const openedTab = await chrome.tabs.create({
+    url: caseUrl.href,
+    active: true
+  });
+
+  return {
+    ok: true,
+    tabId: openedTab.id
+  };
 }
 
 function tabPriority(tab) {
@@ -188,6 +228,103 @@ async function findSearchFrame(tabId) {
 
 function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function findCurrentCustomerId(tabId, policyNumber) {
+  for (let attempt = 0; attempt < PROBE_ATTEMPTS; attempt += 1) {
+    try {
+      const executions = await chrome.scripting.executeScript({
+        target: { tabId, allFrames: true },
+        func: inspectCurrentCustomerId,
+        args: [policyNumber]
+      });
+
+      const readyFrame = executions.find((entry) => entry.result?.ready);
+      if (readyFrame?.result?.customerId) {
+        return readyFrame.result.customerId;
+      }
+    } catch (_error) {
+      // A frame can be replaced while eNsure loads the searched customer.
+    }
+
+    await delay(PROBE_DELAY_MS);
+  }
+
+  return null;
+}
+
+function inspectCurrentCustomerId(policyNumber) {
+  function isCurrentFrameVisible() {
+    try {
+      let currentWindow = window;
+
+      while (currentWindow !== currentWindow.top) {
+        const frameElement = currentWindow.frameElement;
+        if (!frameElement) {
+          return false;
+        }
+
+        const frameStyle = currentWindow.parent.getComputedStyle(frameElement);
+        const frameRect = frameElement.getBoundingClientRect();
+
+        if (
+          frameStyle.display === "none" ||
+          frameStyle.visibility === "hidden" ||
+          frameRect.width === 0 ||
+          frameRect.height === 0
+        ) {
+          return false;
+        }
+
+        currentWindow = currentWindow.parent;
+      }
+
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function isElementVisible(element) {
+    const style = window.getComputedStyle(element);
+    return (
+      style.display !== "none" &&
+      style.visibility !== "hidden" &&
+      element.getClientRects().length > 0
+    );
+  }
+
+  if (!isCurrentFrameVisible()) {
+    return { ready: false };
+  }
+
+  const pageText = document.body?.innerText || "";
+  if (!pageText.includes(policyNumber)) {
+    return { ready: false };
+  }
+
+  const cells = Array.from(document.querySelectorAll("td"));
+
+  for (const labelCell of cells) {
+    const label = labelCell.textContent?.replace(/\s+/g, " ").trim() || "";
+
+    if (!/^Customer ID\s*:?$/i.test(label) || !isElementVisible(labelCell)) {
+      continue;
+    }
+
+    const row = labelCell.closest("tr");
+    const rowCells = Array.from(row?.cells || []);
+    const labelIndex = rowCells.indexOf(labelCell);
+
+    for (const valueCell of rowCells.slice(labelIndex + 1)) {
+      const value = valueCell.textContent?.trim() || "";
+      if (/^\d{1,20}$/.test(value) && isElementVisible(valueCell)) {
+        return { ready: true, customerId: value };
+      }
+    }
+  }
+
+  return { ready: false };
 }
 
 function inspectNewTabControl() {

@@ -8,6 +8,7 @@
   let boundUniqueIdInput = null;
   let placementScheduled = false;
   let resetTimer = null;
+  const customerIdsByPolicyNumber = new Map();
 
   function getPolicyNumber() {
     const input = document.querySelector(UNIQUE_ID_SELECTOR);
@@ -18,16 +19,22 @@
     const host = document.getElementById(BUTTON_HOST_ID);
     const statusElement = host?.querySelector(".ensure-search-status");
 
+    if (status === "working") {
+      window.clearTimeout(resetTimer);
+    }
+
     button.dataset.state = status;
     button.disabled = status === "working";
 
-    if (status === "working") {
-      button.textContent = "Searching...";
-    } else if (status === "success") {
-      button.textContent = "Opened in eNsure (done)";
-    } else {
-      button.textContent = "Search in eNsure";
-    }
+    const idleLabel = button.dataset.idleLabel || "Search in eNsure";
+    const workingLabel = button.dataset.workingLabel || idleLabel;
+    const successLabel = button.dataset.successLabel || idleLabel;
+
+    button.textContent = status === "working"
+      ? workingLabel
+      : status === "success"
+        ? successLabel
+        : idleLabel;
 
     if (statusElement) {
       statusElement.textContent = message || "";
@@ -66,7 +73,44 @@
         throw new Error(response?.error || "The search could not be completed.");
       }
 
-      setStatus(button, "success", `Policy ${policyNumber} was sent to eNsure.`);
+      if (!/^\d{1,20}$/.test(String(response.customerId ?? ""))) {
+        throw new Error("The eNsure customer opened, but its Customer ID was not captured.");
+      }
+
+      customerIdsByPolicyNumber.set(policyNumber, String(response.customerId));
+
+      setStatus(button, "success", `Policy ${policyNumber} is ready for case creation.`);
+      scheduleReset(button);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setStatus(button, "error", message);
+      scheduleReset(button, 6000);
+    }
+  }
+
+  async function openCaseInEnsure(button) {
+    const policyNumber = getPolicyNumber();
+    const customerId = customerIdsByPolicyNumber.get(policyNumber);
+
+    if (!policyNumber || !customerId) {
+      setStatus(button, "error", "Search this policy in eNsure first.");
+      scheduleReset(button, 5000);
+      return;
+    }
+
+    setStatus(button, "working", "Opening a new case tab...");
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: "OPEN_ENSURE_CASE",
+        customerId
+      });
+
+      if (!response?.ok) {
+        throw new Error(response?.error || "The case tab could not be opened.");
+      }
+
+      setStatus(button, "success", "New case opened in a separate tab.");
       scheduleReset(button);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -80,14 +124,29 @@
     host.id = BUTTON_HOST_ID;
     host.className = "ensure-search-host";
 
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "ensure-search-button";
-    button.textContent = "Search in eNsure";
-    button.title = "Search this conversation's Unique ID as a policy number in eNsure";
-    button.setAttribute("aria-label", "Search this policy in eNsure");
-    button.dataset.state = "idle";
-    button.addEventListener("click", () => searchInEnsure(button));
+    const searchButton = document.createElement("button");
+    searchButton.type = "button";
+    searchButton.className = "ensure-search-button";
+    searchButton.textContent = "Search in eNsure";
+    searchButton.title = "Search this conversation's Unique ID as a policy number in eNsure";
+    searchButton.setAttribute("aria-label", "Search this policy in eNsure");
+    searchButton.dataset.state = "idle";
+    searchButton.dataset.idleLabel = "Search in eNsure";
+    searchButton.dataset.workingLabel = "Searching...";
+    searchButton.dataset.successLabel = "Opened in eNsure (done)";
+    searchButton.addEventListener("click", () => searchInEnsure(searchButton));
+
+    const caseButton = document.createElement("button");
+    caseButton.type = "button";
+    caseButton.className = "ensure-search-button ensure-case-button";
+    caseButton.textContent = "Create Case in eNsure";
+    caseButton.title = "Open a new case for the customer found by the policy search";
+    caseButton.setAttribute("aria-label", "Create a case for this customer in eNsure");
+    caseButton.dataset.state = "idle";
+    caseButton.dataset.idleLabel = "Create Case in eNsure";
+    caseButton.dataset.workingLabel = "Opening case...";
+    caseButton.dataset.successLabel = "Case opened (done)";
+    caseButton.addEventListener("click", () => openCaseInEnsure(caseButton));
 
     const status = document.createElement("span");
     status.className = "ensure-search-status";
@@ -95,7 +154,7 @@
     status.setAttribute("aria-live", "polite");
     status.hidden = true;
 
-    host.append(button, status);
+    host.append(searchButton, caseButton, status);
     return host;
   }
 

@@ -1,7 +1,7 @@
 #combox-ensure-policy-search.ensure-search-host {
   display: inline-flex !important;
-  flex-wrap: wrap !important;
-  align-items: center !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
   gap: 6px !important;
   margin: 4px 0 4px 8px !important;
   max-width: 100% !important;
@@ -26,8 +26,17 @@
   box-shadow: 0 1px 2px rgb(0 0 0 / 16%) !important;
 }
 
+#combox-ensure-policy-search .ensure-case-button {
+  border-color: #176b4b !important;
+  background: #23845f !important;
+}
+
 #combox-ensure-policy-search .ensure-search-button:hover:not(:disabled) {
   background: #078fc2 !important;
+}
+
+#combox-ensure-policy-search .ensure-case-button:hover:not(:disabled) {
+  background: #1b6f4f !important;
 }
 
 #combox-ensure-policy-search .ensure-search-button:focus-visible {
@@ -46,7 +55,6 @@
 }
 
 #combox-ensure-policy-search .ensure-search-status {
-  flex-basis: 100% !important;
   max-width: 250px !important;
   color: #4f5b62 !important;
   font: 11px/14px Arial, sans-serif !important;

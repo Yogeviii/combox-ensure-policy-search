@@ -71,6 +71,7 @@ async function searchEnsure(rawPolicyNumber) {
           tabId: tab.id,
           frameIds: [newTabFrame.frameId]
         },
+        world: "MAIN",
         func: openEmptyEnsureTab
       });
 
@@ -353,8 +354,43 @@ function inspectCurrentCustomerContext(policyNumber) {
 function inspectNewTabControl() {
   const newTabButton = document.querySelector('img[onclick*="AddTabClicked"]');
 
+  function isCurrentFrameVisible() {
+    try {
+      let currentWindow = window;
+
+      while (currentWindow !== currentWindow.top) {
+        const frameElement = currentWindow.frameElement;
+        if (!frameElement) {
+          return false;
+        }
+
+        const frameStyle = currentWindow.parent.getComputedStyle(frameElement);
+        const frameRect = frameElement.getBoundingClientRect();
+
+        if (
+          frameStyle.display === "none" ||
+          frameStyle.visibility === "hidden" ||
+          frameRect.width === 0 ||
+          frameRect.height === 0
+        ) {
+          return false;
+        }
+
+        currentWindow = currentWindow.parent;
+      }
+
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
   return {
-    ready: newTabButton instanceof HTMLElement
+    ready: (
+      newTabButton instanceof HTMLElement &&
+      newTabButton.getClientRects().length > 0 &&
+      isCurrentFrameVisible()
+    )
   };
 }
 
@@ -366,8 +402,13 @@ function openEmptyEnsureTab() {
   }
 
   try {
+    if (typeof window.AddTabClicked === "function") {
+      window.AddTabClicked();
+      return { ok: true, method: "AddTabClicked" };
+    }
+
     newTabButton.click();
-    return { ok: true };
+    return { ok: true, method: "element.click" };
   } catch (error) {
     return {
       ok: false,

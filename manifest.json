@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Commbox to eNsure Policy Search",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Searches an eNsure policy and opens a new case tab for the matched customer from Commbox.",
   "permissions": [
     "scripting",

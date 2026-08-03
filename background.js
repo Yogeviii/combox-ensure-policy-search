@@ -51,6 +51,29 @@ async function searchEnsure(rawPolicyNumber) {
   for (const tab of orderedTabs) {
     try {
       await focusTab(tab);
+
+      const newTabFrame = await findNewTabFrame(tab.id);
+
+      if (!newTabFrame) {
+        lastProblem = "The eNsure New Tab (+) control was not found.";
+        continue;
+      }
+
+      const newTabExecution = await chrome.scripting.executeScript({
+        target: {
+          tabId: tab.id,
+          frameIds: [newTabFrame.frameId]
+        },
+        func: openEmptyEnsureTab
+      });
+
+      const newTabResult = newTabExecution[0]?.result;
+
+      if (!newTabResult?.ok) {
+        lastProblem = newTabResult?.error || "eNsure rejected the New Tab (+) action.";
+        continue;
+      }
+
       const targetFrame = await findSearchFrame(tab.id);
 
       if (!targetFrame) {
@@ -95,6 +118,34 @@ function tabPriority(tab) {
   return defaultPageScore + activeScore + (tab.lastAccessed || 0);
 }
 
+async function findNewTabFrame(tabId) {
+  let lastProblem = null;
+
+  for (let attempt = 0; attempt < PROBE_ATTEMPTS; attempt += 1) {
+    try {
+      const executions = await chrome.scripting.executeScript({
+        target: { tabId, allFrames: true },
+        func: inspectNewTabControl
+      });
+
+      const readyFrame = executions.find((entry) => entry.result?.ready);
+      if (readyFrame) {
+        return { frameId: readyFrame.frameId };
+      }
+    } catch (error) {
+      lastProblem = error instanceof Error ? error.message : String(error);
+    }
+
+    await delay(PROBE_DELAY_MS);
+  }
+
+  if (lastProblem) {
+    throw new Error(lastProblem);
+  }
+
+  return null;
+}
+
 async function focusTab(tab) {
   await chrome.tabs.update(tab.id, { active: true });
 
@@ -137,6 +188,32 @@ async function findSearchFrame(tabId) {
 
 function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function inspectNewTabControl() {
+  const newTabButton = document.querySelector('img[onclick*="AddTabClicked"]');
+
+  return {
+    ready: newTabButton instanceof HTMLElement
+  };
+}
+
+function openEmptyEnsureTab() {
+  const newTabButton = document.querySelector('img[onclick*="AddTabClicked"]');
+
+  if (!(newTabButton instanceof HTMLElement)) {
+    return { ok: false, error: "The eNsure New Tab (+) control was not found." };
+  }
+
+  try {
+    newTabButton.click();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
 }
 
 function inspectSearchControls() {

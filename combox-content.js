@@ -77,7 +77,14 @@
         throw new Error("The eNsure customer opened, but its Customer ID was not captured.");
       }
 
-      customerIdsByPolicyNumber.set(policyNumber, String(response.customerId));
+      if (!Number.isInteger(response.windowId)) {
+        throw new Error("The eNsure browser window could not be identified.");
+      }
+
+      customerIdsByPolicyNumber.set(policyNumber, {
+        customerId: String(response.customerId),
+        ensureWindowId: response.windowId
+      });
 
       setStatus(button, "success", `Policy ${policyNumber} is ready for case creation.`);
       scheduleReset(button);
@@ -90,9 +97,9 @@
 
   async function openCaseInEnsure(button) {
     const policyNumber = getPolicyNumber();
-    const customerId = customerIdsByPolicyNumber.get(policyNumber);
+    const customerContext = customerIdsByPolicyNumber.get(policyNumber);
 
-    if (!policyNumber || !customerId) {
+    if (!policyNumber || !customerContext) {
       setStatus(button, "error", "Search this policy in eNsure first.");
       scheduleReset(button, 5000);
       return;
@@ -103,7 +110,8 @@
     try {
       const response = await chrome.runtime.sendMessage({
         type: "OPEN_ENSURE_CASE",
-        customerId
+        customerId: customerContext.customerId,
+        ensureWindowId: customerContext.ensureWindowId
       });
 
       if (!response?.ok) {

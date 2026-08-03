@@ -5,7 +5,7 @@ Commbox conversation's **Unique ID**. Clicking it finds the already-open eNsure
 browser tab, clicks eNsure's **New Tab (+)** control, selects **Policy#**, fills
 the Unique ID into the policy search field, and clicks the magnifying glass. A
 second **Create Case in eNsure** button opens a new case for that customer in a
-separate browser tab.
+separate browser tab in the same Chrome window as eNsure.
 
 Policy and customer IDs are kept only in memory in the current Commbox tab. They
 are not sent outside Commbox and eNsure and are cleared when that tab closes or
@@ -35,7 +35,8 @@ Chrome must be allowed to run this extension on:
    policy number, starts the search, and privately remembers the opened
    customer's ID. Existing customer tabs remain open.
 5. Back in Commbox, click **Create Case in eNsure** below the search button. The
-   extension opens a new case for that saved customer in a separate browser tab.
+   extension opens a new case for that saved customer in a separate browser tab
+   in the eNsure Chrome window, not the Commbox window.
 
 The button is automatically restored when Commbox replaces the conversation
 panel dynamically. The eNsure search also checks all frames, so the controls can

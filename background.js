@@ -104,7 +104,7 @@ async function searchEnsure(rawPolicyNumber) {
         continue;
       }
 
-      const customerId = await findCurrentCustomerId(tab.id);
+      const customerId = await findCurrentCustomerId(tab.id, policyNumber);
 
       if (!customerId) {
         return {
@@ -230,17 +230,40 @@ function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-async function findCurrentCustomerId(tabId) {
+async function findCurrentCustomerId(tabId, policyNumber) {
   for (let attempt = 0; attempt < PROBE_ATTEMPTS; attempt += 1) {
     try {
       const executions = await chrome.scripting.executeScript({
         target: { tabId, allFrames: true },
-        func: inspectCurrentCustomerId
+        func: inspectCurrentCustomerContext,
+        args: [policyNumber]
       });
 
-      const readyFrame = executions.find((entry) => entry.result?.ready);
-      if (readyFrame?.result?.customerId) {
-        return readyFrame.result.customerId;
+      const visibleContexts = executions
+        .map((entry) => entry.result)
+        .filter((result) => result?.visible);
+      const policyIsVisible = visibleContexts.some((result) => result.hasPolicyNumber);
+
+      if (!policyIsVisible) {
+        await delay(PROBE_DELAY_MS);
+        continue;
+      }
+
+      const sameFrameMatch = visibleContexts.find(
+        (result) => result.hasPolicyNumber && result.customerId
+      );
+      if (sameFrameMatch) {
+        return sameFrameMatch.customerId;
+      }
+
+      const customerIds = Array.from(new Set(
+        visibleContexts
+          .map((result) => result.customerId)
+          .filter(Boolean)
+      ));
+
+      if (customerIds.length === 1) {
+        return customerIds[0];
       }
     } catch (_error) {
       // A frame can be replaced while eNsure loads the searched customer.
@@ -252,7 +275,7 @@ async function findCurrentCustomerId(tabId) {
   return null;
 }
 
-function inspectCurrentCustomerId() {
+function inspectCurrentCustomerContext(policyNumber) {
   function isCurrentFrameVisible() {
     try {
       let currentWindow = window;
@@ -294,8 +317,17 @@ function inspectCurrentCustomerId() {
   }
 
   if (!isCurrentFrameVisible()) {
-    return { ready: false };
+    return { visible: false };
   }
+
+  const pageText = document.body?.innerText || "";
+  const escapedPolicyNumber = policyNumber.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const policyPattern = new RegExp(`(^|\\D)${escapedPolicyNumber}(?=\\D|$)`);
+  const context = {
+    visible: true,
+    hasPolicyNumber: policyPattern.test(pageText),
+    customerId: null
+  };
 
   const rows = Array.from(document.querySelectorAll("tr"));
 
@@ -310,11 +342,12 @@ function inspectCurrentCustomerId() {
     const match = rowText.match(/(?:^|\s)Customer ID\s*:?\s*(\d{1,20})(?:\s|$)/i);
 
     if (match) {
-      return { ready: true, customerId: match[1] };
+      context.customerId = match[1];
+      break;
     }
   }
 
-  return { ready: false };
+  return context;
 }
 
 function inspectNewTabControl() {

@@ -12,7 +12,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "SEARCH_ENSURE_POLICY") {
     operation = searchEnsure(String(message.policyNumber ?? ""));
   } else if (message?.type === "OPEN_ENSURE_CASE") {
-    operation = openEnsureCase(String(message.customerId ?? ""));
+    operation = openEnsureCase(
+      String(message.customerId ?? ""),
+      Number(message.ensureWindowId)
+    );
   } else {
     return false;
   }
@@ -118,7 +121,8 @@ async function searchEnsure(rawPolicyNumber) {
         ok: true,
         policyNumber,
         customerId,
-        tabId: tab.id
+        tabId: tab.id,
+        windowId: tab.windowId
       };
     } catch (error) {
       lastProblem = error instanceof Error ? error.message : String(error);
@@ -128,11 +132,27 @@ async function searchEnsure(rawPolicyNumber) {
   return { ok: false, error: lastProblem };
 }
 
-async function openEnsureCase(rawCustomerId) {
+async function openEnsureCase(rawCustomerId, ensureWindowId) {
   const customerId = rawCustomerId.trim();
 
   if (!/^\d{1,20}$/.test(customerId)) {
     return { ok: false, error: "A valid saved eNsure Customer ID was not found." };
+  }
+
+  if (!Number.isInteger(ensureWindowId)) {
+    return { ok: false, error: "The eNsure browser window was not saved." };
+  }
+
+  const ensureTabs = await chrome.tabs.query({
+    windowId: ensureWindowId,
+    url: ENSURE_TAB_PATTERN
+  });
+
+  if (!ensureTabs.length) {
+    return {
+      ok: false,
+      error: "The eNsure browser window is no longer open. Search the policy again."
+    };
   }
 
   const caseUrl = new URL(ENSURE_CASE_PAGE);
@@ -141,9 +161,12 @@ async function openEnsureCase(rawCustomerId) {
   caseUrl.searchParams.set("ObjectId", customerId);
 
   const openedTab = await chrome.tabs.create({
+    windowId: ensureWindowId,
     url: caseUrl.href,
     active: true
   });
+
+  await chrome.windows.update(ensureWindowId, { focused: true });
 
   return {
     ok: true,

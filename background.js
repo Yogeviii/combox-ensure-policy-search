@@ -104,7 +104,7 @@ async function searchEnsure(rawPolicyNumber) {
         continue;
       }
 
-      const customerId = await findCurrentCustomerId(tab.id, policyNumber);
+      const customerId = await findCurrentCustomerId(tab.id);
 
       if (!customerId) {
         return {
@@ -230,13 +230,12 @@ function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-async function findCurrentCustomerId(tabId, policyNumber) {
+async function findCurrentCustomerId(tabId) {
   for (let attempt = 0; attempt < PROBE_ATTEMPTS; attempt += 1) {
     try {
       const executions = await chrome.scripting.executeScript({
         target: { tabId, allFrames: true },
-        func: inspectCurrentCustomerId,
-        args: [policyNumber]
+        func: inspectCurrentCustomerId
       });
 
       const readyFrame = executions.find((entry) => entry.result?.ready);
@@ -253,7 +252,7 @@ async function findCurrentCustomerId(tabId, policyNumber) {
   return null;
 }
 
-function inspectCurrentCustomerId(policyNumber) {
+function inspectCurrentCustomerId() {
   function isCurrentFrameVisible() {
     try {
       let currentWindow = window;
@@ -298,29 +297,20 @@ function inspectCurrentCustomerId(policyNumber) {
     return { ready: false };
   }
 
-  const pageText = document.body?.innerText || "";
-  if (!pageText.includes(policyNumber)) {
-    return { ready: false };
-  }
+  const rows = Array.from(document.querySelectorAll("tr"));
 
-  const cells = Array.from(document.querySelectorAll("td"));
-
-  for (const labelCell of cells) {
-    const label = labelCell.textContent?.replace(/\s+/g, " ").trim() || "";
-
-    if (!/^Customer ID\s*:?$/i.test(label) || !isElementVisible(labelCell)) {
+  for (const row of rows) {
+    if (!isElementVisible(row)) {
       continue;
     }
 
-    const row = labelCell.closest("tr");
-    const rowCells = Array.from(row?.cells || []);
-    const labelIndex = rowCells.indexOf(labelCell);
+    const rowText = (row.innerText || row.textContent || "")
+      .replace(/\s+/g, " ")
+      .trim();
+    const match = rowText.match(/(?:^|\s)Customer ID\s*:?\s*(\d{1,20})(?:\s|$)/i);
 
-    for (const valueCell of rowCells.slice(labelIndex + 1)) {
-      const value = valueCell.textContent?.trim() || "";
-      if (/^\d{1,20}$/.test(value) && isElementVisible(valueCell)) {
-        return { ready: true, customerId: value };
-      }
+    if (match) {
+      return { ready: true, customerId: match[1] };
     }
   }
 

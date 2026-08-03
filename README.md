@@ -3,10 +3,13 @@
 This local Chrome extension adds a **Search in eNsure** button next to the
 Commbox conversation's **Unique ID**. Clicking it finds the already-open eNsure
 browser tab, clicks eNsure's **New Tab (+)** control, selects **Policy#**, fills
-the Unique ID into the policy search field, and clicks the magnifying glass.
+the Unique ID into the policy search field, and clicks the magnifying glass. A
+second **Create Case in eNsure** button opens a new case for that customer in a
+separate browser tab.
 
-No policy numbers are stored or sent anywhere by the extension. They are passed
-locally from the Commbox tab to the eNsure tab.
+Policy and customer IDs are kept only in memory in the current Commbox tab. They
+are not sent outside Commbox and eNsure and are cleared when that tab closes or
+reloads.
 
 ## Install
 
@@ -29,7 +32,10 @@ Chrome must be allowed to run this extension on:
    is present.
 3. Click **Search in eNsure** next to the Unique ID.
 4. The extension activates eNsure, opens a new empty internal tab, fills the
-   policy number, and starts the search. Existing customer tabs remain open.
+   policy number, starts the search, and privately remembers the opened
+   customer's ID. Existing customer tabs remain open.
+5. Back in Commbox, click **Create Case in eNsure** below the search button. The
+   extension opens a new case for that saved customer in a separate browser tab.
 
 The button is automatically restored when Commbox replaces the conversation
 panel dynamically. The eNsure search also checks all frames, so the controls can
@@ -43,6 +49,8 @@ be located if the CRM places them inside an iframe.
 - **New Tab (+) or search controls were not found:** Confirm the eNsure page has
   finished loading and that the plus button and Policy# search bar are visible,
   then try again.
+- **Search this policy in eNsure first:** The case button only uses the customer
+  captured by the search button for the currently displayed Unique ID.
 - **No button in Commbox:** Expand the conversation's Details section and check
   that Unique ID is visible. Refresh Commbox after installing or reloading the
   extension.

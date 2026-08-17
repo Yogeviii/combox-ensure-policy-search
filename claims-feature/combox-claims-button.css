@@ -1,0 +1,8 @@
+#combox-ensure-policy-search .ensure-claims-button {
+  border-color: #873044 !important;
+  background: #a63b52 !important;
+}
+
+#combox-ensure-policy-search .ensure-claims-button:hover:not(:disabled) {
+  background: #8e3045 !important;
+}

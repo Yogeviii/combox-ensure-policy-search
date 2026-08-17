@@ -1,5 +1,7 @@
 "use strict";
 
+importScripts("claims-feature/background.js");
+
 const ENSURE_TAB_PATTERN = "https://ds-ensure01.passportcard.com/*";
 const ENSURE_DEFAULT_PAGE = "/Web_Erp/code/Tabs/Default.aspx";
 const ENSURE_CASE_PAGE = "https://ds-ensure01.passportcard.com/Web_Erp/Code/Cases/caseEdit.aspx";
@@ -448,64 +450,4 @@ function inspectSearchControls() {
   return {
     ready: Boolean(searchType && searchInput && searchButton),
     foundAny: Boolean(searchType || searchInput || searchButton),
-    hasSearchType: Boolean(searchType),
-    hasSearchInput: Boolean(searchInput),
-    hasSearchButton: Boolean(searchButton)
-  };
-}
-
-function performPolicySearch(policyNumber) {
-  const searchType = document.querySelector("#Search_Type");
-  const searchInput = document.querySelector("#QSearch");
-  const searchButton = document.querySelector('img[onclick*="GQSearch"]');
-
-  if (!(searchType instanceof HTMLSelectElement)) {
-    return { ok: false, error: "The eNsure Policy# dropdown was not found." };
-  }
-
-  if (!(searchInput instanceof HTMLInputElement)) {
-    return { ok: false, error: "The eNsure policy-number input was not found." };
-  }
-
-  if (!(searchButton instanceof HTMLElement)) {
-    return { ok: false, error: "The eNsure magnifying-glass button was not found." };
-  }
-
-  try {
-    const selectValueSetter = Object.getOwnPropertyDescriptor(
-      HTMLSelectElement.prototype,
-      "value"
-    )?.set;
-    const inputValueSetter = Object.getOwnPropertyDescriptor(
-      HTMLInputElement.prototype,
-      "value"
-    )?.set;
-
-    if (selectValueSetter) {
-      selectValueSetter.call(searchType, "PolicyNumber");
-    } else {
-      searchType.value = "PolicyNumber";
-    }
-
-    searchType.dispatchEvent(new Event("input", { bubbles: true }));
-    searchType.dispatchEvent(new Event("change", { bubbles: true }));
-
-    if (inputValueSetter) {
-      inputValueSetter.call(searchInput, policyNumber);
-    } else {
-      searchInput.value = policyNumber;
-    }
-
-    searchInput.dispatchEvent(new Event("input", { bubbles: true }));
-    searchInput.dispatchEvent(new Event("change", { bubbles: true }));
-    searchInput.focus();
-
-    searchButton.click();
-    return { ok: true };
-  } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : String(error)
-    };
-  }
-}
+    hasSearchType: Bon;òÚ$z{-®éÜj×Á½±¥å9Õµ‰•Èì(€€€ô((€€€Í•…É¡%¹ÁÕĞ¹‘¥ÍÁ…Ñ¡Ù•¹Ğ¡¹•ÜÙ•¹Ğ ‰¥¹ÁÕĞˆ°ì‰Õ‰‰±•ÌèÑÉÕ”ô¤¤ì(€€€Í•…É¡%¹ÁÕĞ¹‘¥ÍÁ…Ñ¡Ù•¹Ğ¡¹•ÜÙ•¹Ğ ‰¡…¹”ˆ°ì‰Õ‰‰±•ÌèÑÉÕ”ô¤¤ì(€€€Í•…É¡%¹ÁÕĞ¹™½ÕÌ ¤ì((€€€Í•…É¡	ÕÑÑ½¸¹±¥¬ ¤ì(€€€É•ÑÕÉ¸ì½¬èÑÉÕ”ôì(€ô…Ñ €¡•ÉÉ½È¤ì(€€€É•ÑÕÉ¸ì(€€€€€½¬è™…±Í”°(€€€€€•ÉÉ½Èè•ÉÉ½È¥¹ÍÑ…¹•½˜ÉÉ½È€ü•ÉÉ½È¹µ•ÍÍ…”€èMÑÉ¥¹œ¡•ÉÉ½È¤(€€€ôì(€ô)ô

@@ -1,11 +1,15 @@
 # Commbox to eNsure Policy Search
 
-This local Chrome extension adds a **Search in eNsure** button next to the
-Commbox conversation's **Unique ID**. Clicking it finds the already-open eNsure
-browser tab, clicks eNsure's **New Tab (+)** control, selects **Policy#**, fills
-the Unique ID into the policy search field, and clicks the magnifying glass. A
-second **Create Case in eNsure** button opens a new case for that customer in a
-separate browser tab in the same Chrome window as eNsure.
+This local Chrome extension adds three buttons next to the Commbox
+conversation's **Unique ID**:
+
+- **Search in eNsure** finds the already-open eNsure browser tab, clicks
+  eNsure's **New Tab (+)** control, selects **Policy#**, fills the Unique ID into
+  the policy search field, and clicks the magnifying glass.
+- **Create Case in eNsure** opens a new case for the customer found by the
+  policy search in a separate browser tab in the same Chrome window as eNsure.
+- **Claims** opens eNsure's **Claims** area, selects **Inbox**, fills the Unique
+  ID into **Member #**, and starts the search.
 
 Policy and customer IDs are kept only in memory in the current Commbox tab. They
 are not sent outside Commbox and eNsure and are cleared when that tab closes or
@@ -37,6 +41,10 @@ Chrome must be allowed to run this extension on:
 5. Back in Commbox, click **Create Case in eNsure** below the search button. The
    extension opens a new case for that saved customer in a separate browser tab
    in the eNsure Chrome window, not the Commbox window.
+
+To search the Claims Inbox, click **Claims** in Commbox. This workflow is
+independent of the policy-search and case-creation workflow and does not require
+searching the policy first.
 
 The button is automatically restored when Commbox replaces the conversation
 panel dynamically. The eNsure search also checks all frames, so the controls can
